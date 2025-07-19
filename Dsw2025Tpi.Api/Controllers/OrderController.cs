@@ -27,20 +27,20 @@ namespace Dsw2025Tpi.Api.Controllers
         public async Task<IActionResult> AddOrder([FromBody] OrderModel.RequestOrder objeto)
         {
 
-            var user= User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var user = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            var order = await _service.AddOrder(objeto,user);
-         
-            return CreatedAtAction(nameof(GetOrderById), new {id=order.id}, order);
-    
+            var order = await _service.AddOrder(objeto, user);
+
+            return CreatedAtAction(nameof(GetOrderById), new { id = order.id }, order);
+
         }
 
-
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetOrderById(Guid id)
         {
-            var orden = await _service.GetProductById(id);
-            if (orden is null) return NotFound();
+            var orden = await _service.GetOrderById(id);
 
             return Ok(orden);
         }
@@ -58,5 +58,17 @@ namespace Dsw2025Tpi.Api.Controllers
             return Ok(Orders);
         }
 
+        [HttpPut("{id}")]
+
+        public async Task<IActionResult> UpdateOrderStaturs(
+            Guid id,
+           [FromBody] OrderStatusModel request)
+        {
+
+                var order = await _service.UpdateOrderStatus(id, request.status);
+                return Ok(order);
+     
+            
+        }
     }
 }

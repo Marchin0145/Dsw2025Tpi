@@ -75,7 +75,10 @@ namespace Dsw2025Tpi.Application.Middleware
                     statusCode = HttpStatusCode.InternalServerError; //500  Internal Server Error
                     message = exception.Message;
                     break;
-
+                case BadRequestException:
+                    statusCode = HttpStatusCode.BadRequest;
+                    message = exception.Message;
+                    break;
                 default:
                     break;
             }

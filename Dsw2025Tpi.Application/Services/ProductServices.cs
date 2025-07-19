@@ -63,7 +63,7 @@ namespace Dsw2025Tpi.Application.Services
 
         public async Task<Product?> GetProductById(Guid id) {
            var product= await _repository.GetById<Product>(id);
-            if (product is null) throw new NotFoundEntityException("no se econtro el producto");
+            if (product is null) throw new NotFoundEntityException("no se encontro el producto");
             return product;
         } 
 
