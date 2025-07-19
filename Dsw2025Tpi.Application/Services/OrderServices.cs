@@ -41,8 +41,6 @@ namespace Dsw2025Tpi.Application.Services
                 throw new NotFoundEntityException($"Usuario no encontrado");
             }
 
-
-
             var items = new List<OrderItem>();
             var itemsResponse = new List<OrderItemModel.ResponseOrderItem>();
             var orden = new Order(customer.Id, request.shippingAddress, request.billingAddress, request.notes);
@@ -82,29 +80,51 @@ namespace Dsw2025Tpi.Application.Services
             }
         }
 
-        public async Task<Order?> GetProductById(Guid id) => await _repository.GetById<Order>(id);
+        public async Task<Order?> GetOrderById(Guid id) {
+           var orden = await _repository.GetById<Order>(id, "OrderItems");
 
-        public async Task<IEnumerable<Order>> GetFilteredOrders(OrderStatus? status, Guid? customerId)
+            if (orden is null) throw new NotFoundEntityException("no se encontro ninguna orden con ese id");
+
+            orden.OrderItems.ForEach(o=>o.Subtotal=o.UnitPrice*o.Quantity);
+           
+           orden.TotalAmount=orden.OrderItems.Sum(o => o.Subtotal);
+    
+
+            return orden;
+        }
+
+        public async Task<List<Order>?> GetFilteredOrders(OrderStatus? status, Guid? customerId)
         {
-            IEnumerable<Order>? orders;
+            List<Order> orders;
             try {
 
                 if (status == null && customerId == null)
                 {
 
-                    orders = await _repository.GetAll<Order>();
+                    orders = (await _repository.GetAll<Order>("OrderItems")).ToList();
                 }
                 else
                 {
-                    orders = await _repository.GetFiltered<Order>(
+                    orders = (await _repository.GetFiltered<Order>(
                         o => (status == null || o.Status == status.Value) &&
-                            (customerId == null || o.CustomerId == customerId.Value)
-                            );
+                            (customerId == null || o.CustomerId == customerId.Value), "OrderItems"
+                            )).ToList();
 
-                   // if(orders == null || !orders.Any()) throw new NoContentException("No hay ordenes que coincidan con los filtros");
 
                 }
-                               
+
+                if (orders is null || !orders.Any())
+                {
+                    throw new NoContentException("No se encontraron órdenes");
+                }
+
+                orders.ForEach(order =>
+                {
+                    order.OrderItems.ForEach(item => item.Subtotal = item.Quantity * item.UnitPrice);
+                    order.TotalAmount = order.OrderItems.Sum(item => item.Subtotal);
+                });
+
+                
 
                 return orders;
             }
@@ -113,6 +133,7 @@ namespace Dsw2025Tpi.Application.Services
             throw new InternalServerErrorException("El servidor falló inesperadamente");
             }
         }
+
 
     }
 }

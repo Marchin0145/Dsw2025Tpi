@@ -18,7 +18,7 @@ namespace Dsw2025Tpi.Domain.Entities
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
 
-        public decimal Subtotal=> Quantity * UnitPrice;
+        public decimal Subtotal { get; set; }
 
         public OrderItem(Guid orderId,Guid productId, Product product, int quantity, decimal unitPrice)
         {
