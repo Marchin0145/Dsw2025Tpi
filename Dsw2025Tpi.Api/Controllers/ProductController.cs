@@ -10,7 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 namespace Dsw2025Tpi.Api.Controllers
 {
     [ApiController]
-    [Authorize]
+    //[Authorize]
     [Route("api/products")]
     public class ProductController : ControllerBase
     {
@@ -19,7 +19,7 @@ namespace Dsw2025Tpi.Api.Controllers
 
         [ProducesResponseType(typeof(ProductModel.ResponseProduct), StatusCodes.Status201Created)]
         [HttpPost]
-        [Authorize(Roles ="Employee")]
+       // [Authorize(Roles ="Employee")]
         public async Task<IActionResult> addProduct([FromBody]ProductModel.RequestProduct objeto)
         {
                 var producto = await _service.AddProduct(objeto);
@@ -44,14 +44,14 @@ namespace Dsw2025Tpi.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Employee")]
+        //[Authorize(Roles = "Employee")]
         public async Task<IActionResult> UpdateProduct(Guid id, [FromBody]ProductModel.RequestProduct productoActualizado) 
         {
             var producto= await _service.UpdateProduct(id, productoActualizado);
            return Ok(producto);
         }
         [HttpPatch("{id}")]
-        [Authorize(Roles = "Employee")]
+        //[Authorize(Roles = "Employee")]
         public async Task<IActionResult> DisableProduct(Guid id)
         {
             await _service.DisableProduct(id);

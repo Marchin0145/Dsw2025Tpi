@@ -13,7 +13,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace Dsw2025Tpi.Api.Controllers
 {
     [ApiController]
-    [Authorize]
+    //[Authorize]
     [Route("api/orders")]
     public class OrderController : ControllerBase
     {
@@ -27,11 +27,11 @@ namespace Dsw2025Tpi.Api.Controllers
         public async Task<IActionResult> AddOrder([FromBody] OrderModel.RequestOrder objeto)
         {
 
-            var user = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            var order = await _service.AddOrder(objeto, user);
-
-            return CreatedAtAction(nameof(GetOrderById), new { id = order.id }, order);
+            var order = await _service.AddOrder(objeto, User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+         
+            return CreatedAtAction(nameof(GetOrderById), new {id=order.id}, order);
+    
+        }
 
         }
 
@@ -45,7 +45,7 @@ namespace Dsw2025Tpi.Api.Controllers
             return Ok(orden);
         }
 
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [HttpGet]
         public async Task<IActionResult> GetOrders(
         OrderStatus? status,
@@ -53,10 +53,10 @@ namespace Dsw2025Tpi.Api.Controllers
 
         {
             var Orders = await _service.GetFilteredOrders(status, customerId);
-            if (!Orders.Any()) return NoContent();
 
             return Ok(Orders);
         }
+
 
         [HttpPut("{id}")]
 
@@ -70,5 +70,6 @@ namespace Dsw2025Tpi.Api.Controllers
      
             
         }
+
     }
 }
