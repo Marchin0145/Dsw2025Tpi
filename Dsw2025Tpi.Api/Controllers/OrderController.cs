@@ -33,12 +33,14 @@ namespace Dsw2025Tpi.Api.Controllers
     
         }
 
+        }
 
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetOrderById(Guid id)
         {
             var orden = await _service.GetOrderById(id);
-           
 
             return Ok(orden);
         }
@@ -55,10 +57,19 @@ namespace Dsw2025Tpi.Api.Controllers
             return Ok(Orders);
         }
 
-       /* [HttpPut]
 
-        public async Task<IActionResult> UpdateStateOrder
-       */
+        [HttpPut("{id}")]
+
+        public async Task<IActionResult> UpdateOrderStaturs(
+            Guid id,
+           [FromBody] OrderStatusModel request)
+        {
+
+                var order = await _service.UpdateOrderStatus(id, request.status);
+                return Ok(order);
+     
+            
+        }
 
     }
 }

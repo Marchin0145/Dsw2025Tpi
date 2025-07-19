@@ -24,7 +24,7 @@ namespace Dsw2025Tpi.Application.Services
             _repository = repository;
         }
 
-        public async Task<OrderModel.ResponseOrder> AddOrder(OrderModel.RequestOrder request,string userName)
+        public async Task<OrderModel.ResponseOrder> AddOrder(OrderModel.RequestOrder request, string userName)
         {
             if (string.IsNullOrWhiteSpace(request.shippingAddress) ||
                 string.IsNullOrWhiteSpace(request.billingAddress) ||
@@ -69,7 +69,8 @@ namespace Dsw2025Tpi.Application.Services
         }
 
 
-        public async void ValidationProducts(List<OrderItemModel.RequestOrderItem> lista) {
+        public async void ValidationProducts(List<OrderItemModel.RequestOrderItem> lista)
+        {
             foreach (var item in lista)
             {
                 var producto = await _repository.GetById<Product>(item.productId);
@@ -80,28 +81,31 @@ namespace Dsw2025Tpi.Application.Services
             }
         }
 
-        public async Task<Order?> GetOrderById(Guid id) {
-           var orden = await _repository.GetById<Order>(id, "OrderItems");
 
-            if (orden is null) throw new NotFoundEntityException("no se encontro ninguna orden con ese id");
+        public async Task<Order?> GetOrderById(Guid id)
+        {
 
-            orden.OrderItems.ForEach(o=>o.Subtotal=o.UnitPrice*o.Quantity);
-           
-           orden.TotalAmount=orden.OrderItems.Sum(o => o.Subtotal);
-    
+            var order = await _repository.GetById<Order>(id, "OrderItems");
+            if(order is null) throw new NotFoundEntityException("No existen ordenes con ese id");
 
-            return orden;
+            order.OrderItems.ForEach(o => o.Subtotal = o.Quantity * o.UnitPrice);
+            order.TotalAmount = order.OrderItems.Sum(o => o.Subtotal);
+
+            return order;
         }
 
         public async Task<List<Order>?> GetFilteredOrders(OrderStatus? status, Guid? customerId)
         {
+
             List<Order> orders;
             try {
 
                 if (status == null && customerId == null)
                 {
 
+
                     orders = (await _repository.GetAll<Order>("OrderItems")).ToList();
+
                 }
                 else
                 {
@@ -112,6 +116,10 @@ namespace Dsw2025Tpi.Application.Services
 
 
                 }
+
+
+
+                
 
                 if (orders is null || !orders.Any())
                 {
@@ -124,14 +132,41 @@ namespace Dsw2025Tpi.Application.Services
                     order.TotalAmount = order.OrderItems.Sum(item => item.Subtotal);
                 });
 
-                
-
                 return orders;
             }
             catch (InternalServerErrorException)
             {
-            throw new InternalServerErrorException("El servidor falló inesperadamente");
+                throw new InternalServerErrorException("El servidor falló inesperadamente.");
             }
+        }
+
+
+        public async Task<Order> UpdateOrderStatus(Guid id, OrderStatus status)
+        {
+            var order = await _repository.GetById<Order>(id,"OrderItems");
+
+            if (order is null) throw new NotFoundEntityException("la orden no existe.");
+
+            if (!IsValidTransition(order.Status, status) || order.Status.Equals(status)) throw new BadRequestException("Transición de estado no permitida.");
+
+            order.Status = status;
+
+            await _repository.Update(order);
+
+            return order;
+        }
+
+        bool IsValidTransition(OrderStatus current, OrderStatus next)
+        {
+            return (current, next) switch
+            {
+                (OrderStatus.Pending, OrderStatus.Processing) => true,
+                (OrderStatus.Processing, OrderStatus.Shipped) => true,
+                (OrderStatus.Shipped, OrderStatus.Delivered) => true,
+                (OrderStatus.Pending, OrderStatus.Cancelled) => true,
+                (OrderStatus.Processing, OrderStatus.Cancelled) => true,
+                _ => false
+            };
         }
 
 
