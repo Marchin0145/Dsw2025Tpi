@@ -26,6 +26,17 @@ public class Program
         // Add services to the container.
 
         builder.Services.AddControllers();
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowFrontend", policy =>
+            {
+                policy.WithOrigins("http://localhost:5173") // Tu Vite/React
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials(); // Si usas JWT/cookies
+            });
+        });
+
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddDbContext<Dsw2025TpiContext>(options =>
@@ -145,6 +156,8 @@ public class Program
         app.UseHttpsRedirection();
 
         app.UseMiddleware<ExceptionMiddleware>();
+       
+        app.UseCors("AllowFrontend");
 
         app.UseAuthentication();
 

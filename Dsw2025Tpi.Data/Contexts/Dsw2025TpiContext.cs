@@ -38,7 +38,7 @@ public class Dsw2025TpiContext: DbContext
 
 
             eb.Property(p => p.Description)
-            .HasMaxLength(100);
+            .HasMaxLength(500);
 
 
             eb.Property(p => p.CurrentUnitPrice)

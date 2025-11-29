@@ -52,10 +52,10 @@ namespace Dsw2025Tpi.Application.Services
                 {
                     throw new ArgumentException("valores incompletos o erroneos en productos");
                 }
-                items.Add(new OrderItem(orden.Id, item.productId, producto, item.quantity, item.currentUnitPrice));
-                itemsResponse.Add(new OrderItemModel.ResponseOrderItem(item.productId, item.quantity, producto.Description, item.currentUnitPrice, item.quantity * item.currentUnitPrice));
+                items.Add(new OrderItem(orden.Id, item.productId, producto, item.quantity, producto.CurrentUnitPrice));
+                itemsResponse.Add(new OrderItemModel.ResponseOrderItem(item.productId, item.quantity, producto.Description, producto.CurrentUnitPrice, item.quantity * producto.CurrentUnitPrice));
                 producto.StockQuantity -= item.quantity;
-                await _repository.Update(producto);
+                //await _repository.Update(producto);
 
             }
 
@@ -93,7 +93,7 @@ namespace Dsw2025Tpi.Application.Services
             return orden;
         }
 
-        public async Task<List<Order>?> GetFilteredOrders(OrderStatus? status, Guid? customerId)
+        public async Task<List<Order>?> GetFilteredOrders(OrderStatus? status, Guid? customerId, int? page , int? limit)
         {
             List<Order> orders;
             try {
@@ -124,7 +124,7 @@ namespace Dsw2025Tpi.Application.Services
                     order.TotalAmount = order.OrderItems.Sum(item => item.Subtotal);
                 });
 
-                
+                orders = orders.Skip(((page ?? 1) - 1) * limit.Value).Take(limit.Value).ToList();
 
                 return orders;
             }

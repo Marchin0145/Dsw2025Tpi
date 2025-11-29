@@ -7,8 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Dsw2025Tpi.Api.Controllers
 {
+    [ApiController]
+    //[Authorize]
+    [Route("api/auth")]
     public class AuthenticateController : ControllerBase
     {
+
  
         private readonly UserManager<IdentityUser> _userManager;// para manejar usuarios
         private readonly SignInManager<IdentityUser> _signInManager;// para manejar inicio de sesion
@@ -30,12 +34,12 @@ namespace Dsw2025Tpi.Api.Controllers
             var user = await _userManager.FindByNameAsync(request.Username);
             if (user == null)
             {
-                return Unauthorized("Usuario o contraseña incorrectos");
+                return BadRequest("Usuario o contraseña incorrectos");
             }
             var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);// false para no bloquear la cuenta despues de varios intentos fallidos
             if (!result.Succeeded) 
             {
-            return Unauthorized("Usuario o contraseña incorrectos");
+            return BadRequest("Usuario o contraseña incorrectos");
             }
 
             string role; // por defecto el rol es cliente

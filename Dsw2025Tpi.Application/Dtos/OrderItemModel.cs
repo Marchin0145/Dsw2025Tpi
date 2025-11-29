@@ -12,8 +12,7 @@ namespace Dsw2025Tpi.Application.Dtos
         public record RequestOrderItem(
               Guid productId,
               string name,
-              int quantity,
-              decimal currentUnitPrice);
+              int quantity);
         public record ResponseOrderItem(
               Guid productId,
           int quantity,

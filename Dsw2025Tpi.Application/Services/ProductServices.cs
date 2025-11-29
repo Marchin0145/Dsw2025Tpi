@@ -20,10 +20,26 @@ namespace Dsw2025Tpi.Application.Services
             _repository = repository;
         }
 
-        public async Task<List<Product>?> GetProducts() {
-          var product =  await _repository.GetAll<Product>(); 
-        if(product is null) throw new NoContentException("no se encontraron productos");
-            return product.ToList();
+        public async Task<List<Product>?> GetProducts(int page, int limit, string? search, bool? stateProduct) {
+            var product = await _repository.GetAll<Product>();
+            if (product is null) throw new NoContentException("no se encontraron productos");
+
+            // Filtrado por búsqueda si corresponde
+            var query = product.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(p =>
+                    (p.Name != null && p.Name.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+                    (p.Description != null && p.Description.Contains(search, StringComparison.OrdinalIgnoreCase))
+                );
+            }
+            if (stateProduct!=null) query = query.Where(p => (p.IsActive == stateProduct));
+            
+
+            // Paginado
+            query = query.Skip((page - 1) * limit).Take(limit);
+
+            return query.ToList();
         }
 
 

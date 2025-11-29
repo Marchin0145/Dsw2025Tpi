@@ -13,7 +13,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace Dsw2025Tpi.Api.Controllers
 {
     [ApiController]
-    //[Authorize]
+    [Authorize]
     [Route("api/orders")]
     public class OrderController : ControllerBase
     {
@@ -47,10 +47,13 @@ namespace Dsw2025Tpi.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetOrders(
         OrderStatus? status,
-        Guid? customerId)
+        Guid? customerId,
+        int? page=1,
+        int? limit = 10
+        )
 
         {
-            var Orders = await _service.GetFilteredOrders(status, customerId);
+            var Orders = await _service.GetFilteredOrders(status, customerId, page,limit);
 
             return Ok(Orders);
         }

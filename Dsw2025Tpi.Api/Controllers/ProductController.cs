@@ -10,7 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 namespace Dsw2025Tpi.Api.Controllers
 {
     [ApiController]
-    //[Authorize]
+    [Authorize]
     [Route("api/products")]
     public class ProductController : ControllerBase
     {
@@ -26,12 +26,12 @@ namespace Dsw2025Tpi.Api.Controllers
                 return CreatedAtAction(nameof(GetProductById), new { id = producto.Id},producto);
         }
 
-        
+
         [HttpGet]
-        //[AllowAnonymous] para que entre cualquiera
+        [AllowAnonymous] //para que entre cualquiera
         //[Authorize(Roles ="tester")]
-        public async Task <IActionResult> getProducts() { 
-        var productos= await _service.GetProducts();
+        public async Task<IActionResult> getProducts([FromQuery] int page = 1, [FromQuery] int limit = 1, [FromQuery] string? search = null, [FromQuery] bool? isActive=null) { 
+        var productos= await _service.GetProducts(page, limit, search,isActive);
             return Ok(productos);
         }
 
