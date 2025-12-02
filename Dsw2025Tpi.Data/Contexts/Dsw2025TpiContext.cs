@@ -80,6 +80,11 @@ public class Dsw2025TpiContext: DbContext
             eb.ToTable("Orders");
             eb.HasKey(p => p.Id);
 
+            eb.Property(o => o.Date)// Valor por defecto en la base de datos
+               .IsRequired();
+
+            eb.Ignore(o => o.NameCustomer);
+
             eb.HasOne<Customer>()// relacion muchos a uno
             .WithMany()
             .HasForeignKey(o => o.CustomerId)
@@ -108,13 +113,9 @@ public class Dsw2025TpiContext: DbContext
         modelBuilder.Entity<OrderItem>(eb => {
             eb.ToTable("OrderItems");
             eb.HasKey(p => p.Id);
+            eb.Ignore(o => o.NameProduct);
 
-            // Solo si Order.Id y OrderItem.OrderId son del mismo tipo
-            /* eb.HasOne<Order>()
-                 .WithMany()
-                 .HasForeignKey(oi => oi.OrderId)
-                 .HasPrincipalKey(o => o.Id);  // Especificar la clave principal
-            */
+           
             eb.HasOne<Order>()
          .WithMany(o => o.OrderItems)  // Especificar la lista explícitamente
          .HasForeignKey(oi => oi.OrderId);

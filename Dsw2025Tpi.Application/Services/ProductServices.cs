@@ -20,13 +20,17 @@ namespace Dsw2025Tpi.Application.Services
             _repository = repository;
         }
 
-        public async Task<List<Product>?> GetProducts(int page, int limit, string? search, bool? stateProduct) {
+        public async Task<List<Product>?> GetProducts(int? page, int? limit, string? search, bool? stateProduct, bool isMostStock) {
             var product = await _repository.GetAll<Product>();
             if (product is null) throw new NoContentException("no se encontraron productos");
 
-            // Filtrado por búsqueda si corresponde
+         
+         
             var query = product.AsQueryable();
-            if (!string.IsNullOrWhiteSpace(search))
+            // ordenamiento por stock
+            if (isMostStock == true) query = query.OrderBy(p => (p.StockQuantity));
+                // Filtrado por búsqueda si corresponde
+                if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(p =>
                     (p.Name != null && p.Name.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
@@ -34,10 +38,12 @@ namespace Dsw2025Tpi.Application.Services
                 );
             }
             if (stateProduct!=null) query = query.Where(p => (p.IsActive == stateProduct));
-            
 
-            // Paginado
-            query = query.Skip((page - 1) * limit).Take(limit);
+            // Paginado seguro
+            if (page != null && limit != null && page > 0 && limit > 0)
+                query = query.Skip(((int)page - 1) * (int)limit).Take((int)limit);
+
+
 
             return query.ToList();
         }
@@ -118,12 +124,13 @@ namespace Dsw2025Tpi.Application.Services
             return producto;
         }
 
-        public async Task<bool> DisableProduct(Guid id)
+        public async Task<bool> ChangeStateProduct(Guid id)
         {
+            var newState = false;
             var producto = await _repository.GetById<Product>(id);
-            if (producto is null) throw new NotFoundEntityException("no se econtro el producto");
-            if(producto.IsActive is false) throw new ArgumentException("el producto ya se encuentra deshabilitado");
-            producto.IsActive = false;
+            if (producto is null) throw new NotFoundEntityException("no se encontro el producto");
+            if (producto.IsActive is false) newState = true;  
+            producto.IsActive = newState;
             await _repository.Update(producto);
             return true;
         }

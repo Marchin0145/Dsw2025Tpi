@@ -30,8 +30,8 @@ namespace Dsw2025Tpi.Api.Controllers
         [HttpGet]
         [AllowAnonymous] //para que entre cualquiera
         //[Authorize(Roles ="tester")]
-        public async Task<IActionResult> getProducts([FromQuery] int page = 1, [FromQuery] int limit = 1, [FromQuery] string? search = null, [FromQuery] bool? isActive=null) { 
-        var productos= await _service.GetProducts(page, limit, search,isActive);
+        public async Task<IActionResult> getProducts([FromQuery] int? page = null, [FromQuery] int? limit = null, [FromQuery] string? search = null, [FromQuery] bool? isActive = null, [FromQuery] bool isMostStock=false) { 
+        var productos= await _service.GetProducts(page, limit, search,isActive,isMostStock);
             return Ok(productos);
         }
 
@@ -52,9 +52,9 @@ namespace Dsw2025Tpi.Api.Controllers
         }
         [HttpPatch("{id}")]
         //[Authorize(Roles = "Employee")]
-        public async Task<IActionResult> DisableProduct(Guid id)
+        public async Task<IActionResult> ChangeStateProduct(Guid id)
         {
-            await _service.DisableProduct(id);
+            await _service.ChangeStateProduct(id);
             return NoContent();
         }
 
