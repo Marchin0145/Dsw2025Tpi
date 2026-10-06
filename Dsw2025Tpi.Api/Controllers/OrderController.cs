@@ -33,8 +33,6 @@ namespace Dsw2025Tpi.Api.Controllers
     
         }
 
-        }
-
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpGet("{id}")]

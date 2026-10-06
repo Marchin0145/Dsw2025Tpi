@@ -23,6 +23,14 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        if (!builder.Environment.IsDevelopment() &&
+            (string.IsNullOrWhiteSpace(builder.Configuration["AdminUser:Email"]) ||
+             string.IsNullOrWhiteSpace(builder.Configuration["AdminUser:Password"])))
+        {
+            throw new InvalidOperationException(
+                "Set AdminUser__Email and AdminUser__Password before starting outside Development.");
+        }
+
         // Add services to the container.
 
         builder.Services.AddControllers();
