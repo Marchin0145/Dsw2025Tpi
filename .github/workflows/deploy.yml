@@ -1,0 +1,92 @@
+name: Build and deploy API
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+
+concurrency:
+  group: api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build API and Docker image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore Dsw2025Tpi.sln
+
+      - name: Build solution
+        run: dotnet build Dsw2025Tpi.sln --configuration Release --no-restore --no-incremental --disable-build-servers -m:1
+
+      - name: Build Docker image
+        run: docker build --tag dsw2025tpi-api:ci .
+
+      - name: Publish API for App Service
+        if: github.ref == 'refs/heads/main'
+        run: dotnet publish Dsw2025Tpi.Api/Dsw2025Tpi.Api.csproj --configuration Release --no-build --disable-build-servers -m:1 --output ./publish
+
+      - name: Upload deployment artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-publish
+          path: ./publish
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Azure App Service
+    if: github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download deployment artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-publish
+          path: ./publish
+
+      - name: Sign in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy API
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          package: ./publish
+
+      - name: Check public health endpoint
+        env:
+          APP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+        run: |
+          curl --fail --silent --show-error --retry 12 --retry-delay 10 \
+            --retry-all-errors --max-time 20 \
+            "https://${APP_NAME}.azurewebsites.net/healthcheck"
+
+      - name: Check database-backed endpoint
+        env:
+          APP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+        run: |
+          curl --fail --silent --show-error --retry 6 --retry-delay 10 \
+            --retry-all-errors --max-time 20 \
+            "https://${APP_NAME}.azurewebsites.net/api/products" > /dev/null
