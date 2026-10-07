@@ -2,9 +2,11 @@
 
 ## Integrantes del grupo
 
--58212-Tártalo Aguirre Franco Emanuel-Franco.TartaloAguirre@alu.frt.utn.edu.ar
--57873-Campos Lucas Gonzalo-Lucas.Campos@alu.frt.utn.edu.ar
--58185-Rodriguez Hector Martin-HectorMartin.Rodriguez@alu.frt.utn.edu.ar
+-58114-Goane Bernardo Luis - Bernardo.Goane@alu.frt.utn.edu.ar
+-57861-Barale Agustin Miqueas - Agustin.Barale@alu.frt.utn.edu.ar
+-58282-Alonso Iglesias Fernando Paul - Fernando.AlonsoIglesias@alu.frt.utn.edu.ar
+-57873-Campos Lucas Gonzalo - Lucas.Campos@alu.frt.utn.edu.ar
+-58185-Rodriguez Hector Martin - HectorMartin.Rodriguez@alu.frt.utn.edu.ar
 
 ## Instrucciones para configurar y ejecutar el proyecto localmente
 
