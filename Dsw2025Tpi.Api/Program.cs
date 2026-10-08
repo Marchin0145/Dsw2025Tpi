@@ -39,7 +39,11 @@ public class Program
         builder.Services.AddDbContext<Dsw2025TpiContext>(options =>
 
            options.UseSqlServer(builder.Configuration.GetConnectionString("Dsw2025Tpi"),
-           x=>x.MigrationsAssembly("Dsw2025Tpi.Api")
+           x=>
+           {
+               x.MigrationsAssembly("Dsw2025Tpi.Api");
+               x.EnableRetryOnFailure();
+           }
            )//corregir
            );
         builder.Services.AddSwaggerGen();
@@ -131,7 +135,11 @@ public class Program
         
         builder.Services.AddDbContext<AuthenticateContext>(options=>
         {
-            options.UseSqlServer(builder.Configuration.GetConnectionString("Dsw2025Tpi"), b => b.MigrationsAssembly("Dsw2025Tpi.Api"));
+            options.UseSqlServer(builder.Configuration.GetConnectionString("Dsw2025Tpi"), b =>
+            {
+                b.MigrationsAssembly("Dsw2025Tpi.Api");
+                b.EnableRetryOnFailure();
+            });
         // la base de datos que utilizara entity
         }
         );
