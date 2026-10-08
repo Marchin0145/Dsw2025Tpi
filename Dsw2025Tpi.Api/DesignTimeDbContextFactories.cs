@@ -9,7 +9,11 @@ public class Dsw2025TpiContextFactory : IDesignTimeDbContextFactory<Dsw2025TpiCo
     public Dsw2025TpiContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<Dsw2025TpiContext>()
-            .UseSqlServer(DesignTimeConnectionString.Get(), sql => sql.MigrationsAssembly("Dsw2025Tpi.Api"))
+            .UseSqlServer(DesignTimeConnectionString.Get(), sql =>
+            {
+                sql.MigrationsAssembly("Dsw2025Tpi.Api");
+                sql.EnableRetryOnFailure();
+            })
             .Options;
 
         return new Dsw2025TpiContext(options);
@@ -21,7 +25,11 @@ public class AuthenticateContextFactory : IDesignTimeDbContextFactory<Authentica
     public AuthenticateContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<AuthenticateContext>()
-            .UseSqlServer(DesignTimeConnectionString.Get(), sql => sql.MigrationsAssembly("Dsw2025Tpi.Api"))
+            .UseSqlServer(DesignTimeConnectionString.Get(), sql =>
+            {
+                sql.MigrationsAssembly("Dsw2025Tpi.Api");
+                sql.EnableRetryOnFailure();
+            })
             .Options;
 
         return new AuthenticateContext(options);
