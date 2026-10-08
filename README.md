@@ -177,7 +177,8 @@ docker run --rm --name dsw2025tpi-api -p 8080:8080 \
 La API escucha en `http://+:8080` dentro del contenedor. Para cambiar esa URL,
 pasá `-e ASPNETCORE_URLS=http://+:PUERTO` y ajustá el segundo puerto de `-p`.
 El entorno se selecciona con `ASPNETCORE_ENVIRONMENT`; Swagger está disponible
-en `/swagger` solamente en `Development`.
+en `/swagger` tanto localmente como en la URL pública de Azure. El documento
+OpenAPI se sirve en `/swagger/v1/swagger.json`.
 
 Comprobá que la API responde con:
 
