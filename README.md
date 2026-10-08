@@ -198,9 +198,9 @@ entorno. No guardes contraseñas ni claves reales en el Dockerfile.
 
 El workflow `.github/workflows/deploy.yml` valida los cambios en `dev` y
 `main`: restaura paquetes, compila la solución desde cero y construye la
-imagen Docker. En `main` también publica la API como artefacto .NET 8 y la
-despliega en Azure App Service. El Dockerfile se conserva para la verificación
-local y del pipeline; App Service Free F1 recibe el artefacto .NET.
+imagen Docker. En `main` sube esa imagen a GitHub Container Registry (GHCR)
+y configura Azure App Service para ejecutarla. La Web App debe ser de tipo
+**Container** con Linux, no de tipo Code.
 
 ### Recursos de Azure
 
@@ -208,11 +208,11 @@ local y del pipeline; App Service Free F1 recibe el artefacto .NET.
    pause al alcanzar el límite mensual gratuito. Guardá el nombre del servidor,
    de la base y del usuario administrador SQL. Las dos migraciones de EF Core
    usan la misma base de datos.
-2. Creá una Web App de tipo **Code**, con .NET 8, Windows y plan **Free F1**.
+2. Creá una Web App de tipo **Container**, con Linux y plan **Free F1**.
 3. En la configuración de la Web App agregá estas variables:
    `ASPNETCORE_ENVIRONMENT=Production`, `ConnectionStrings__Dsw2025Tpi`,
-   `Jwt__key`, `Jwt__issuer`, `Jwt__Audience`, `AdminUser__Email` y
-   `AdminUser__Password`. La cadena debe apuntar al servidor de Azure SQL,
+   `Jwt__key`, `Jwt__issuer`, `Jwt__Audience`, `AdminUser__Email`,
+   `AdminUser__Password` y `WEBSITES_PORT=8080`. La cadena debe apuntar al servidor de Azure SQL,
    tener `Encrypt=True` y usar las credenciales SQL elegidas. La aplicación
    requiere el correo y la contraseña iniciales del administrador fuera de
    Development; no uses los valores por defecto de desarrollo.
@@ -240,8 +240,20 @@ Creá una identidad de Microsoft Entra con una credencial federada de GitHub
 para la rama `main` de este repositorio y asignale el rol **Website Contributor**
 solo sobre la Web App. En los secretos de Actions del repositorio guardá
 `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` y `AZURE_SUBSCRIPTION_ID`. En las variables
-de Actions guardá `AZURE_WEBAPP_NAME` con el nombre de la Web App. El workflow
-usa OpenID Connect y no necesita guardar una contraseña de publicación.
+de Actions guardá `AZURE_WEBAPP_NAME` con el nombre de la Web App y
+`AZURE_WEBAPP_URL` con su dominio predeterminado completo, incluyendo `https://`
+y sin barra final. Copiá la URL de **Overview** en Azure; puede incluir un
+hash y la región. El workflow usa OpenID Connect y no necesita guardar una
+contraseña de publicación.
+
+El workflow sube la imagen a `ghcr.io/marchin0145/dsw2025tpi:<commit>` usando
+el `GITHUB_TOKEN` de Actions. La primera imagen puede quedar privada por
+defecto. Después del primer `push` a `main`, abrí el paquete en GitHub:
+**Marchin0145 → Packages → dsw2025tpi → Package settings → Change visibility**,
+y elegí **Public** para que App Service pueda descargarlo sin credenciales de
+registro. Volvé a ejecutar el workflow desde **Actions → Re-run all jobs**.
+Si la imagen debe permanecer privada, configurá credenciales de lectura de
+GHCR en App Service; este flujo supone una imagen pública.
 
 Después de subir el workflow y configurar esos valores, cada push o merge en
 `main` desplegará la API. El job de despliegue consulta `/healthcheck` y
