@@ -1,92 +1,43 @@
-name: Build and deploy API
+name: Build and Deploy to Azure App Service (Publish Profile)
 
 on:
   push:
-    branches:
-      - dev
-      - main
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
 
-concurrency:
-  group: api-${{ github.ref }}
-  cancel-in-progress: true
-
+env:
+  DOCKERHUB_USERNAME: vchibilisco
+  IMAGE_NAME: ics-backend
 jobs:
-  verify:
-    name: Build API and Docker image
+  build-and-deploy:
     runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.image.outputs.image }}
-    permissions:
-      contents: read
-      packages: write
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+    - name: 1. Obtener el código
+      uses: actions/checkout@v4
+    - name: 2. Iniciar sesión en Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ env.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set up .NET 8
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Restore dependencies
-        run: dotnet restore Dsw2025Tpi.sln
-
-      - name: Build solution
-        run: dotnet build Dsw2025Tpi.sln --configuration Release --no-restore --no-incremental --disable-build-servers -m:1
-
-      - name: Set image name
-        id: image
-        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-
-      - name: Build Docker image
-        run: docker build --tag "${{ steps.image.outputs.image }}" .
-
-      - name: Sign in to GitHub Container Registry
-        if: github.ref == 'refs/heads/main'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push Docker image
-        if: github.ref == 'refs/heads/main'
-        run: docker push "${{ steps.image.outputs.image }}"
-
-  deploy:
-    name: Deploy to Azure App Service
-    if: github.ref == 'refs/heads/main'
-    needs: verify
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Sign in to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy API
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
-          images: ${{ needs.verify.outputs.image }}
-
-      - name: Check public health endpoint
-        env:
-          APP_URL: ${{ vars.AZURE_WEBAPP_URL }}
-        run: |
-          curl --fail --silent --show-error --retry 12 --retry-delay 10 \
-            --retry-all-errors --max-time 20 \
-            "${APP_URL%/}/healthcheck"
-
-      - name: Check database-backed endpoint
-        env:
-          APP_URL: ${{ vars.AZURE_WEBAPP_URL }}
-        run: |
-          curl --fail --silent --show-error --retry 6 --retry-delay 10 \
-            --retry-all-errors --max-time 20 \
-            "${APP_URL%/}/api/products" > /dev/null
+    - name: 3. Construir la imagen Docker (.NET 8)
+      run: |
+        docker build \
+          -t ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+          -t ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest \
+          -f Dockerfile \
+          .
+    - name: 4. Subir la imagen a Docker Hub
+      if: github.event_name != 'pull_request'
+      run: |
+        docker push ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker push ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+    - name: 5. Desplegar el contenedor en Azure App Service
+      if: github.event_name != 'pull_request'
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ secrets.APP_SERVICE_NAME }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        images: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
