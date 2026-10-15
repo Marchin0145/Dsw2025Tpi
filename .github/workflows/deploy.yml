@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: ${{ secrets.ACR_NAME }}.azurecr.io
   IMAGE_NAME: dsw2025tpi-api
+  
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
