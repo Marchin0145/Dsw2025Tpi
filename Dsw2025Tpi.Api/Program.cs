@@ -46,7 +46,6 @@ public class Program
            }
            )//corregir
            );
-        builder.Services.AddSwaggerGen();
         builder.Services.AddScoped<IRepository, EfRepository>();
         builder.Services.AddTransient<ProductServices>();
         builder.Services.AddTransient<OrderServices>();
@@ -147,10 +146,6 @@ public class Program
 
         var app = builder.Build();
 
-        Task.Run(async () => await SeedDataAsync(app)).Wait();
-
-
-
         // Configure the HTTP request pipeline.
         // Swagger debe estar disponible también en Production para el dominio de Azure.
         app.UseSwagger();
@@ -168,57 +163,62 @@ public class Program
         
         app.MapHealthChecks("/healthcheck");
 
+        // Do not block the HTTP listener while SQL Server is unavailable. On the
+        // Free App Service tier, SQL retry delays can otherwise trigger startup
+        // timeouts and repeated container restarts.
+        app.Lifetime.ApplicationStarted.Register(() =>
+        {
+            _ = Task.Run(() => SeedDataAsync(app));
+        });
+
         app.Run();
     }
 
     static async Task SeedDataAsync(WebApplication app)
     {
-        using (var scope = app.Services.CreateScope())
+        try
         {
+            using var scope = app.Services.CreateScope();
             var services = scope.ServiceProvider;
             var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
             var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
             var configuration = services.GetRequiredService<IConfiguration>();
 
-            try
+            // Crear roles si no existen
+            string[] roles = { "Admin", "Employee", "Customer" };
+            foreach (var role in roles)
             {
-                // Crear roles si no existen
-                string[] roles = { "Admin", "Employee", "Customer" };
-                foreach (var role in roles)
+                if (!await roleManager.RoleExistsAsync(role))
                 {
-                    if (!await roleManager.RoleExistsAsync(role))
-                    {
-                        await roleManager.CreateAsync(new IdentityRole(role));
-                    }
-                }
-
-                // Crear usuario admin
-                var adminEmail = configuration["AdminUser:Email"] ?? "admin@empresa.com";
-                var adminPassword = configuration["AdminUser:Password"] ?? "Admin123!";
-
-                var adminUser = await userManager.FindByEmailAsync(adminEmail);
-                if (adminUser == null)
-                {
-                    adminUser = new IdentityUser
-                    {
-                        UserName = adminEmail,
-                        Email = adminEmail,
-                        EmailConfirmed = true
-                    };
-
-                    var result = await userManager.CreateAsync(adminUser, adminPassword);
-                    if (result.Succeeded)
-                    {
-                        await userManager.AddToRoleAsync(adminUser, "Admin");
-                        Console.WriteLine($"Usuario admin creado: {adminEmail}");
-                    }
+                    await roleManager.CreateAsync(new IdentityRole(role));
                 }
             }
-            catch (Exception ex)
+
+            // Crear usuario admin
+            var adminEmail = configuration["AdminUser:Email"] ?? "admin@empresa.com";
+            var adminPassword = configuration["AdminUser:Password"] ?? "Admin123!";
+
+            var adminUser = await userManager.FindByEmailAsync(adminEmail);
+            if (adminUser == null)
             {
-                var logger = services.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "Error al ejecutar seeder");
+                adminUser = new IdentityUser
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(adminUser, adminPassword);
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(adminUser, "Admin");
+                    app.Logger.LogInformation("Usuario administrador creado: {Email}", adminEmail);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogError(ex, "Falló la inicialización de datos. La API seguirá ejecutándose.");
         }
     }
 

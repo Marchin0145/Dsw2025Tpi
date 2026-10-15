@@ -199,11 +199,20 @@ entorno. No guardes contraseñas ni claves reales en el Dockerfile.
 
 El workflow `.github/workflows/deploy.yml` valida los cambios en `dev` y
 `main`: restaura paquetes, compila la solución desde cero y construye la
-imagen Docker. En `main` sube esa imagen a GitHub Container Registry (GHCR)
-y configura Azure App Service para ejecutarla. La Web App debe ser de tipo
+imagen Docker. En `main` sube esa imagen a Docker Hub y configura Azure App Service para ejecutarla. La Web App debe ser de tipo
 **Container** con Linux, no de tipo Code.
 
 ### Recursos de Azure
+**Importante para App Service con contenedor:** dejá vacío `Startup Command` en
+Configuration > General settings. La imagen ya define `ENTRYPOINT ["dotnet",
+"Dsw2025Tpi.Api.dll"]` y escucha en el puerto 8080. App Service agrega el
+Startup Command al comando del contenedor; duplicarlo puede impedir que arranque.
+Configurá `WEBSITES_PORT=8080` en Environment variables.
+
+El plan F1 tiene cuotas estrictas de CPU, memoria y transferencia. Los reinicios
+repetidos pueden agotarlas; F1 no es adecuado para mantener una API disponible
+continuamente. Si la cuota ya se agotó, la aplicación no responderá hasta el
+reinicio de la cuota o hasta usar un plan con más capacidad.
 
 1. Creá una Azure SQL Database con la oferta **Free** y seleccioná que se
    pause al alcanzar el límite mensual gratuito. Guardá el nombre del servidor,
