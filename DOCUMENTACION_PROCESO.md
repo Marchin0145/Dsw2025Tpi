@@ -193,12 +193,10 @@ Las escrituras del repositorio llaman a `SaveChangesAsync()`. El inicio de sesi�
 Ejemplo para Azure SQL, con marcadores que deben reemplazarse:
 
 ```text
-Server=tcp:<servidor>.database.windows.net,1433;Initial Catalog=<base>;User ID=<usuario-sql>;Password=<contraseña-sql>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+$env:ConnectionStrings__Dsw2025Tpi = 'Server=tcp:<servidor>.database.windows.net,1433;Initial Catalog=<base>;User ID=<usuario-sql>;Password=<contraseña-sql>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
 ```
 
-La base debe existir, el usuario SQL debe tener permisos y las reglas de red deben permitir el acceso desde el equipo que aplica migraciones y desde la Web App. La API necesita poder resolver el servidor y alcanzar el puerto SQL configurado, normalmente TCP 1433.
-
-En desarrollo Windows, `appsettings.Development.json` usa LocalDB. **LocalDB no funciona dentro del contenedor Linux de esta API.** Para Docker se debe usar una instancia SQL Server accesible por red o Azure SQL. En Docker Desktop, si SQL Server está en la máquina anfitriona, puede utilizarse `host.docker.internal` con el puerto de una instancia que tenga TCP habilitado. `localhost` dentro del contenedor se refiere al propio contenedor.
+La base debe existir, el usuario SQL debe tener permisos y las reglas de red deben permitir el acceso desde el equipo que aplica migraciones y desde la Web App. La API necesita poder resolver el servidor y alcanzar el puerto SQL configurado.
 
 ### 4.4. Variables de ejecución
 
@@ -215,8 +213,6 @@ En desarrollo Windows, `appsettings.Development.json` usa LocalDB. **LocalDB no 
 | `AdminUser__Password` | Contraseña del administrador inicial, compatible con las reglas de Identity. |
 
 Fuera de `Development`, el código exige `AdminUser__Email` y `AdminUser__Password` antes de continuar con el arranque. También necesita configuración JWT y SQL válida para operar. El archivo `appsettings.json` no contiene esos valores de producción.
-
-La contraseña SQL, la contraseña del administrador de la API y la clave JWT son valores distintos. El administrador inicial se crea sólo si no existe: cambiar `AdminUser__Password` posteriormente no modifica automáticamente la contraseña de un usuario existente.
 
 ## 5. Creación del esquema y migraciones
 
@@ -244,66 +240,12 @@ Si `dotnet-ef` ya está instalado, comprobar su versión con `dotnet ef --versio
 
 Como alternativa para revisión previa, pueden generarse scripts SQL idempotentes con `dotnet ef migrations script --idempotent`, indicando el mismo `--context`, `--project` y `--startup-project` para cada contexto. El pipeline actual no ejecuta estas migraciones.
 
-## 6. Ejecución y validación local
 
-### 6.1. Ejecutar sin Docker
-
-Configurar la conexión como en la sección anterior, aplicar ambas migraciones y ejecutar:
-
-```powershell
-dotnet run --project Dsw2025Tpi.Api --launch-profile https
-```
-
-Ese perfil define `Development` y las direcciones `https://localhost:7138` y `http://localhost:5142`. Swagger se encuentra en `/swagger`. Si se usa HTTPS local, debe estar disponible el certificado de desarrollo de .NET.
-
-### 6.2. Ejecutar el contenedor
-
-Después de construir la imagen y aplicar las migraciones, configurar en la sesión PowerShell la conexión SQL y las siguientes variables con valores propios:
-
-```powershell
-$env:Jwt__key = '<clave-aleatoria-de-al-menos-32-bytes>'
-$env:Jwt__issuer = 'Dsw2025Tpi.Api'
-$env:Jwt__Audience = 'Dsw2025Tpi.ApiUsers'
-$env:Jwt__ExpireInMinutes = '60'
-$env:AdminUser__Email = '<correo-administrador>'
-$env:AdminUser__Password = '<contraseña-administrador>'
-
-docker run -d --name dsw2025tpi-api -p 8080:8080 `
-  -e ASPNETCORE_ENVIRONMENT=Production `
-  -e ConnectionStrings__Dsw2025Tpi `
-  -e Jwt__key -e Jwt__issuer -e Jwt__Audience -e Jwt__ExpireInMinutes `
-  -e AdminUser__Email -e AdminUser__Password `
-  dsw2025tpi-api:local
-
-docker logs dsw2025tpi-api
-```
-
-Las opciones `-e NOMBRE` pasan al contenedor el valor de la variable del mismo nombre en la sesión anfitriona. El mapeo `8080:8080` publica el puerto del contenedor en el puerto 8080 de la computadora. La configuración SQL debe apuntar a un servidor accesible desde Docker, no a LocalDB.
-
-Comprobar desde otra terminal:
-
-```powershell
-curl.exe -i http://localhost:8080/healthcheck
-curl.exe -i http://localhost:8080/swagger/v1/swagger.json
-curl.exe -i http://localhost:8080/api/products
-```
-
-Abrir también `http://localhost:8080/swagger` para verificar la interfaz. Swagger está habilitado en todos los entornos en la versión documentada. La API incluye `UseHttpsRedirection()`; si la configuración efectiva provoca una redirección, comprobar el destino HTTPS y el puerto configurado.
-
-`/healthcheck` verifica salud básica del proceso y no tiene una comprobación SQL registrada. `/api/products` sí consulta la base y devuelve `200`, incluso con una lista vacía: el repositorio utiliza `ToListAsync()` y la condición de `NoContentException` sólo evalúa un resultado nulo. Los logs y una prueba de autenticación ayudan a comprobar también la inicialización de Identity.
-
-Para finalizar la ejecución local:
-
-```powershell
-docker stop dsw2025tpi-api
-docker rm dsw2025tpi-api
-```
-
-## 7. Pipeline de integración y despliegue
+## 6. Pipeline de integración y despliegue
 
 El repositorio contiene dos workflows independientes. Ambos construyen imágenes en ciertos eventos; no existe una dependencia que obligue al workflow de despliegue a esperar al workflow `Docker Image CI`.
 
-### 7.1. Workflow de construcción Docker
+### 6.1. Workflow de construcción Docker
 
 Archivo: [.github/workflows/docker-image.yml](.github/workflows/docker-image.yml).  
 Nombre: `Docker Image CI`.
@@ -316,7 +258,7 @@ docker build . --file Dockerfile --tag my-image-name:$(date +%s)
 
 Construye una imagen con una etiqueta basada en el momento de ejecución. No la publica en un registro ni la despliega.
 
-### 7.2. Workflow de publicación y despliegue
+### 6.2. Workflow de publicación y despliegue
 
 Archivo: [.github/workflows/deploy.yml](.github/workflows/deploy.yml).  
 Nombre: `Build and Deploy to Azure App Service (Publish Profile)`.
@@ -364,7 +306,7 @@ La etiqueta `${{ github.sha }}` permite identificar el commit asociado al evento
     images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 ```
 
-### 7.3. Secretos requeridos en GitHub Actions
+### 6.3. Secretos requeridos en GitHub Actions
 
 Se configuran en los secretos de Actions del repositorio:
 
@@ -379,7 +321,7 @@ El YAML declara también `REGISTRY: ${{ secrets.ACR_NAME }}.azurecr.io`, pero es
 
 La conexión SQL y las claves JWT se configuran en el entorno de ejecución de la Web App. El workflow no las transmite mediante `docker build`.
 
-### 7.4. Alcance y comportamiento actual
+### 6.4. Alcance y comportamiento actual
 
 - La compilación se realiza mediante `dotnet publish` dentro del Dockerfile. El workflow actual no tiene pasos independientes `dotnet restore`, `dotnet build` o `dotnet test`.
 - La carpeta `test/` contiene cuerpos JSON para casos de prueba manuales; la solución no incluye un proyecto de pruebas automatizadas.
@@ -389,9 +331,9 @@ La conexión SQL y las claves JWT se configuran en el entorno de ejecución de l
 
 Como mejoras del flujo, se recomienda separar los entornos por rama o reservar el despliegue de producción para `main`, omitir el login en PR cuando sólo se valida la construcción, desplegar la etiqueta SHA y agregar pruebas HTTP de aplicación y SQL. Estas mejoras no forman parte del YAML documentado.
 
-## 8. Preparación y despliegue en Azure
+## 7. Preparación y despliegue en Azure
 
-### 8.1. Recursos y configuración
+### 7.1. Recursos y configuración
 
 Antes del primer despliegue deben estar preparados:
 
@@ -401,13 +343,9 @@ Antes del primer despliegue deben estar preparados:
 4. Un repositorio Docker Hub al que pueda publicar GitHub Actions y del que pueda descargar Azure.
 5. Los cuatro secretos utilizados por el workflow.
 
-En la Web App se configuran las variables de la sección 4.4, con entorno `Production` y conexión a Azure SQL. El puerto de destino debe coincidir con **8080**. En App Service con configuración clásica de contenedor se utiliza `WEBSITES_PORT=8080`; si el recurso utiliza configuración con sidecar, se define el puerto de destino en la configuración del contenedor. Consultar la [guía oficial de configuración de contenedores de App Service](https://learn.microsoft.com/azure/app-service/configure-custom-container) para el modelo del recurso.
+En la Web App se configuran las variables de la sección 4.4, con entorno `Production` y conexión a Azure SQL. El puerto de destino debe coincidir con **8080**. En App Service con configuración clásica de contenedor se utiliza `WEBSITES_PORT=8080`; si el recurso utiliza configuración con sidecar, se define el puerto de destino en la configuración del contenedor.
 
-Si el repositorio Docker Hub es privado, Azure necesita credenciales de lectura del registro. El login efectuado por GitHub Actions sirve para publicar y no configura por sí solo las credenciales con las que la Web App descarga la imagen. El perfil de publicación debe estar habilitado y ser válido para la Web App indicada.
-
-Los nombres reales del servidor, la base y el dominio público deben obtenerse de los recursos utilizados por el equipo. No se deducen del código ni se incluyen credenciales en este documento. El plan y su costo dependen de la configuración de Azure; el repositorio no permite acreditarlos.
-
-### 8.2. Secuencia de despliegue
+### 7.2. Secuencia de despliegue
 
 ```mermaid
 sequenceDiagram
@@ -428,12 +366,12 @@ sequenceDiagram
 
 Una ejecución exitosa del paso de despliegue debe complementarse con pruebas funcionales. El pipeline actual no acredita por sí solo que la conexión SQL o el inicio de sesión estén funcionando.
 
-## 9. Validación de la entrega
+## 8. Validación de la entrega
 
 Reemplazar el dominio de ejemplo por el dominio real de la Web App:
 
 ```powershell
-$apiBaseUrl = 'https://<dominio-real-de-la-web-app>'
+$apiBaseUrl = '[https://<dominio-real-de-la-web-app>](https://techogar-bjh4hka0ftfhahaj.chilecentral-01.azurewebsites.net/)'
 curl.exe -i "$apiBaseUrl/healthcheck"
 curl.exe -i "$apiBaseUrl/swagger/v1/swagger.json"
 curl.exe -i "$apiBaseUrl/api/products"
@@ -455,32 +393,3 @@ Para Swagger, la definición existente usa un campo de tipo `ApiKey` para el enc
 La ruta implementada para actualizar el estado de una orden es **`PUT /api/orders/{id}`**. Debe utilizarse esa ruta al validar esta versión, aunque el README histórico mencione una terminación `/status`.
 
 Para dejar trazabilidad, registrar rama, commit, PR, URL de la ejecución de Actions, etiqueta SHA de la imagen, dominio público, fecha y resultados de las solicitudes. Omitir contraseñas y tokens en capturas y logs compartidos.
-
-## 10. Problemas frecuentes
-
-| Síntoma | Qué revisar |
-| --- | --- |
-| Error al arrancar fuera de Development por `AdminUser` | Variables de correo y contraseña iniciales. |
-| Error de clave JWT | Presencia y longitud de `Jwt__key`, emisor y audiencia. |
-| SQL no conecta desde Docker | Uso de LocalDB o `localhost`, puerto TCP, credenciales y acceso de red. |
-| Error de tablas inexistentes | Aplicación de las migraciones de ambos contextos sobre la base correcta. |
-| `/healthcheck` responde pero falla login o productos | Logs del seeder, esquema, conexión SQL y configuración de Identity. |
-| Falla login a Docker Hub en un PR | Disponibilidad de secretos para ese evento, usuario y token. |
-| Azure no descarga la imagen | Nombre/tag publicados y credenciales de lectura si el registro es privado. |
-| Azure no enruta tráfico a la API | Puerto de destino 8080, variables de escucha y logs del contenedor. |
-| Despliegue fallido con perfil de publicación | Perfil vigente, autenticación de publicación habilitada y nombre correcto de Web App. |
-
-## 11. Fuentes y diferencias entre versiones
-
-Las fuentes principales de este documento son los archivos de la rama local `dev` en el commit indicado:
-
-- [Solución y proyectos](Dsw2025Tpi.sln).
-- [Dockerfile](Dockerfile) y [.dockerignore](.dockerignore).
-- [Workflow de construcción](.github/workflows/docker-image.yml) y [workflow de despliegue](.github/workflows/deploy.yml).
-- [Arranque y configuración](Dsw2025Tpi.Api/Program.cs).
-- [Factories de migraciones](Dsw2025Tpi.Api/DesignTimeDbContextFactories.cs).
-- [Contexto del negocio](Dsw2025Tpi.Data/Contexts/Dsw2025TpiContext.cs), [contexto de Identity](Dsw2025Tpi.Data/Contexts/AuthenticateContext.cs) y [repositorio EF](Dsw2025Tpi.Data/Repositories/EfRepository.cs).
-
-La referencia local `main` apunta a `22acd89` y presenta diferencias en Dockerfile, workflow y arranque. No debe asumirse que ambas ramas ejecutan la misma configuración. Las referencias remotas locales tampoco garantizan el estado actual del servidor GitHub.
-
-El README y los informes anteriores describen en algunas secciones un despliegue mediante GHCR y OIDC, con comprobaciones HTTP y despliegue exclusivo desde `main`. En la versión aquí documentada, `deploy.yml` utiliza **Docker Hub y perfil de publicación**, y permite desplegar desde **`dev` y `main`**. Ante diferencias, la descripción de este documento corresponde a los archivos y al commit identificados al comienzo.
