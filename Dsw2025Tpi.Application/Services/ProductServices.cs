@@ -77,9 +77,9 @@ namespace Dsw2025Tpi.Application.Services
                 throw new IncorrectPriceException("Precio menor o igual a cero");
             }
 
-            if (request.stockQuantity < 0)
+            if (request.stockQuantity <= 0)
             {
-                throw new ArgumentException("el stock no puede ser negativo");
+                throw new ArgumentException("el stock debe ser mayor a cero");
             }
 
             if (string.IsNullOrWhiteSpace(request.name) ||
