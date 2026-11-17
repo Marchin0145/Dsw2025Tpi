@@ -46,6 +46,13 @@ public sealed class ApiFixture : IDisposable
         await context.SaveChangesAsync();
     }
 
+    public async Task<int> CountProductsAsync()
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>()
+            .Set<Product>().CountAsync();
+    }
+
     public AuthenticationHeaderValue AdminAuthorization() => CreateAuthorization(AdminEmail, "Admin");
 
     public AuthenticationHeaderValue CustomerAuthorization(Customer customer) =>

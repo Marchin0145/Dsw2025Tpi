@@ -20,10 +20,41 @@ namespace Dsw2025Tpi.Application.Services
             _repository = repository;
         }
 
-        public async Task<List<Product>?> GetProducts() {
-          var product =  await _repository.GetAll<Product>(); 
-        if(product is null) throw new NoContentException("no se encontraron productos");
-            return product.ToList();
+        public async Task<ProductListModel> GetProducts(
+            bool includeInactive = false,
+            int pageNumber = 1,
+            int pageSize = 10,
+            string? search = null)
+        {
+            var products = await _repository.GetAll<Product>();
+            if (products is null)
+            {
+                throw new NoContentException("no se encontraron productos");
+            }
+
+            IEnumerable<Product> filteredProducts = products;
+            if (!includeInactive)
+            {
+                filteredProducts = filteredProducts.Where(product => product.IsActive);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                filteredProducts = filteredProducts.Where(product =>
+                    product.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    product.Sku!.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    product.InternalCode.Contains(search, StringComparison.OrdinalIgnoreCase));
+            }
+
+            var orderedProducts = filteredProducts
+                .OrderBy(product => product.Sku, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(product => product.Id)
+                .ToArray();
+            return new ProductListModel(
+                orderedProducts.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToArray(),
+                orderedProducts.Length,
+                pageNumber,
+                pageSize);
         }
 
 
