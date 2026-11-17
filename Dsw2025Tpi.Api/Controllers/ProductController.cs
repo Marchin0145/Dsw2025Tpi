@@ -28,14 +28,13 @@ namespace Dsw2025Tpi.Api.Controllers
 
         
         [HttpGet]
-        //[AllowAnonymous] para que entre cualquiera
-        //[Authorize(Roles ="tester")]
+        [AllowAnonymous]
         public async Task<IActionResult> getProducts(
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10,
-            [FromQuery] string? searchTerm = null)
+            [FromQuery(Name = "search")] string? search = null)
         {
-            var products = await _service.GetProducts(false, pageNumber, pageSize, searchTerm);
+            var products = await _service.GetProducts(false, pageNumber, pageSize, search);
             return Ok(products);
         }
 
@@ -45,9 +44,9 @@ namespace Dsw2025Tpi.Api.Controllers
             [FromQuery] bool includeInactive = true,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10,
-            [FromQuery] string? searchTerm = null)
+            [FromQuery(Name = "search")] string? search = null)
         {
-            var products = await _service.GetProducts(includeInactive, pageNumber, pageSize, searchTerm);
+            var products = await _service.GetProducts(includeInactive, pageNumber, pageSize, search);
             return Ok(products);
         }
 

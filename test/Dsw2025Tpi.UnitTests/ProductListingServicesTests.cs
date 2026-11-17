@@ -16,7 +16,7 @@ public class ProductListingServicesTests
 
         var result = await service.GetProducts(includeInactive: false);
 
-        Assert.All(result.Items, product => Assert.True(product.IsActive));
+        Assert.All(result.ProductItems, product => Assert.True(product.IsActive));
         Assert.Equal(2, result.TotalItems);
     }
 
@@ -33,13 +33,13 @@ public class ProductListingServicesTests
             pageSize: pageSize);
 
         Assert.Equal(15, result.TotalItems);
-        Assert.Equal(5, result.Items.Count);
+        Assert.Equal(5, result.ProductItems.Count);
         Assert.Equal(
             products.OrderBy(product => product.Sku, StringComparer.OrdinalIgnoreCase)
                 .Skip(5)
                 .Take(5)
                 .Select(product => product.Id),
-            result.Items.Select(product => product.Id));
+            result.ProductItems.Select(product => product.Id));
     }
 
     [Theory]
@@ -56,7 +56,7 @@ public class ProductListingServicesTests
 
         var result = await service.GetProducts(searchTerm: searchTerm);
 
-        var product = Assert.Single(result.Items);
+        var product = Assert.Single(result.ProductItems);
         Assert.Equal(expectedName, product.Name);
     }
 }
