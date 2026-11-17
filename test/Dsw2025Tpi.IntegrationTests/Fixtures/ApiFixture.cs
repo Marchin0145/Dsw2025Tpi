@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using Dsw2025Tpi.Api;
+using Dsw2025Tpi.Application.Dtos;
 using Dsw2025Tpi.Application.Services;
 using Dsw2025Tpi.Data.Contexts;
 using Dsw2025Tpi.Domain.Entities;
@@ -50,6 +51,48 @@ public sealed class ApiFixture : IDisposable
 
     public AuthenticationHeaderValue CustomerAuthorization(Customer customer) =>
         CreateAuthorization(customer.UserName, "Customer");
+
+    public async Task<Product?> FindProductByIdAsync(Guid id)
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>();
+        return await context.Set<Product>().SingleOrDefaultAsync(product => product.Id == id);
+    }
+
+    public async Task<OrderModel.ResponseOrder?> FindOrderByCustomerIdAsync(Guid customerId)
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>();
+        var order = await context.Set<Order>()
+            .Include(savedOrder => savedOrder.OrderItems)
+            .SingleOrDefaultAsync(savedOrder => savedOrder.CustomerId == customerId);
+
+        return order is null
+            ? null
+            : new OrderModel.ResponseOrder(
+                order.Id,
+                order.CustomerId,
+                order.Date,
+                order.ShippingAddress,
+                order.BillingAddress,
+                order.Notes,
+                order.Date,
+                order.OrderItems!.Sum(item => item.Quantity * item.UnitPrice),
+                order.Status,
+                order.OrderItems.Select(item => new OrderItemModel.ResponseOrderItem(
+                    item.ProductId,
+                    item.Quantity,
+                    string.Empty,
+                    item.UnitPrice,
+                    item.Quantity * item.UnitPrice)).ToList());
+    }
+
+    public async Task<int> CountOrdersAsync()
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>();
+        return await context.Set<Order>().CountAsync();
+    }
 
     private AuthenticationHeaderValue CreateAuthorization(string userName, string role)
     {
