@@ -24,8 +24,18 @@ namespace Dsw2025Tpi.Application.Services
             bool includeInactive = false,
             int pageNumber = 1,
             int pageSize = 10,
-            string? search = null)
+            string? searchTerm = null)
         {
+            if (pageNumber < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageNumber), "La página debe ser mayor a cero.");
+            }
+
+            if (pageSize < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageSize), "El tamaño de página debe ser mayor a cero.");
+            }
+
             var products = await _repository.GetAll<Product>();
             if (products is null)
             {
@@ -38,23 +48,25 @@ namespace Dsw2025Tpi.Application.Services
                 filteredProducts = filteredProducts.Where(product => product.IsActive);
             }
 
-            if (!string.IsNullOrWhiteSpace(search))
+            if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 filteredProducts = filteredProducts.Where(product =>
-                    product.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                    product.Sku!.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                    product.InternalCode.Contains(search, StringComparison.OrdinalIgnoreCase));
+                    product.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    product.Sku!.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    product.InternalCode.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
             }
 
             var orderedProducts = filteredProducts
                 .OrderBy(product => product.Sku, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(product => product.Id)
                 .ToArray();
-            return new ProductListModel(
-                orderedProducts.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToArray(),
-                orderedProducts.Length,
-                pageNumber,
-                pageSize);
+            var totalItems = orderedProducts.Length;
+            var page = orderedProducts
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToArray();
+
+            return new ProductListModel(page, totalItems, pageNumber, pageSize);
         }
 
 
@@ -65,9 +77,9 @@ namespace Dsw2025Tpi.Application.Services
                 throw new IncorrectPriceException("Precio menor o igual a cero");
             }
 
-            if (request.stockQuantity < 0)
+            if (request.stockQuantity <= 0)
             {
-                throw new ArgumentException("el stock no puede ser negativo");
+                throw new ArgumentException("el stock debe ser mayor a cero");
             }
 
             if (string.IsNullOrWhiteSpace(request.name) ||

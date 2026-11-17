@@ -19,7 +19,7 @@ namespace Dsw2025Tpi.Api.Controllers
 
         [ProducesResponseType(typeof(ProductModel.ResponseProduct), StatusCodes.Status201Created)]
         [HttpPost]
-       // [Authorize(Roles ="Employee")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> addProduct([FromBody]ProductModel.RequestProduct objeto)
         {
                 var producto = await _service.AddProduct(objeto);
@@ -28,8 +28,6 @@ namespace Dsw2025Tpi.Api.Controllers
 
         
         [HttpGet]
-        //[AllowAnonymous] para que entre cualquiera
-        //[Authorize(Roles ="tester")]
         [AllowAnonymous]
         public async Task<IActionResult> getProducts(
             [FromQuery] int pageNumber = 1,
