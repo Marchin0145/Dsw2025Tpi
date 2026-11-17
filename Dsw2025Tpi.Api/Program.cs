@@ -17,13 +17,14 @@ using Microsoft.OpenApi.Models;
 
 namespace Dsw2025Tpi.Api;
 
-public class Program
+public partial class Program
 {
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
         if (!builder.Environment.IsDevelopment() &&
+            !builder.Environment.IsEnvironment("Testing") &&
             (string.IsNullOrWhiteSpace(builder.Configuration["AdminUser:Email"]) ||
              string.IsNullOrWhiteSpace(builder.Configuration["AdminUser:Password"])))
         {
@@ -103,7 +104,11 @@ public class Program
 
 
         var jwtConfig = builder.Configuration.GetSection("Jwt");// recuperar configuracion de JWT
-        var keyText = jwtConfig["key"] ?? throw new ArgumentNullException("JWT Key"); // recuperar key
+        var keyText = jwtConfig["key"]
+            ?? Environment.GetEnvironmentVariable("Jwt__key")
+            ?? (builder.Environment.IsEnvironment("Testing")
+                ? "3f8b2e1c-4d5a-4e6f-9a7b-2c1d8e5f6a9c-!@#QwErTyUiOp1234567890"
+                : throw new ArgumentNullException("JWT Key"));
         var key= Encoding.UTF8.GetBytes(keyText); // convertir a bytes
 
         builder.Services.AddAuthentication(options =>
@@ -223,3 +228,5 @@ public class Program
     }
 
 }
+
+public partial class Program { }
