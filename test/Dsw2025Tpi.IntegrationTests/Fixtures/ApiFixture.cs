@@ -1,5 +1,7 @@
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using Dsw2025Tpi.Api;
+using Dsw2025Tpi.Application.Dtos;
 using Dsw2025Tpi.Application.Services;
 using Dsw2025Tpi.Data.Contexts;
 using Dsw2025Tpi.Domain.Entities;
@@ -20,6 +22,8 @@ namespace Dsw2025Tpi.IntegrationTests.Fixtures;
 public sealed class ApiFixture : IDisposable
 {
     private const string AdminEmail = "admin@tp4.example";
+    private static readonly string AdminPassword = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    private static readonly string JwtSigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
     private readonly SqliteConnection _applicationDatabase = CreateDatabase();
     private readonly SqliteConnection _identityDatabase = CreateDatabase();
@@ -62,11 +66,53 @@ public sealed class ApiFixture : IDisposable
         return await context.Set<Product>().SingleOrDefaultAsync(product => product.Sku == sku);
     }
 
+    public async Task<Product?> FindProductByIdAsync(Guid id)
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>();
+        return await context.Set<Product>().SingleOrDefaultAsync(product => product.Id == id);
+    }
+
     public async Task<int> CountProductsAsync()
     {
         await using var scope = _factory.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>();
         return await context.Set<Product>().CountAsync();
+    }
+
+    public async Task<OrderModel.ResponseOrder?> FindOrderByCustomerIdAsync(Guid customerId)
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>();
+        var order = await context.Set<Order>()
+            .Include(savedOrder => savedOrder.OrderItems)
+            .SingleOrDefaultAsync(savedOrder => savedOrder.CustomerId == customerId);
+
+        return order is null
+            ? null
+            : new OrderModel.ResponseOrder(
+                order.Id,
+                order.CustomerId,
+                order.Date,
+                order.ShippingAddress,
+                order.BillingAddress,
+                order.Notes,
+                order.Date,
+                order.OrderItems!.Sum(item => item.Quantity * item.UnitPrice),
+                order.Status,
+                order.OrderItems.Select(item => new OrderItemModel.ResponseOrderItem(
+                    item.ProductId,
+                    item.Quantity,
+                    string.Empty,
+                    item.UnitPrice,
+                    item.Quantity * item.UnitPrice)).ToList());
+    }
+
+    public async Task<int> CountOrdersAsync()
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>();
+        return await context.Set<Order>().CountAsync();
     }
 
     private AuthenticationHeaderValue CreateAuthorization(string userName, string role)
@@ -119,8 +165,8 @@ public sealed class ApiFixture : IDisposable
                 {
                     [HostDefaults.EnvironmentKey] = "Testing",
                     ["AdminUser:Email"] = AdminEmail,
-                    ["AdminUser:Password"] = "TP4-fixture!Admin42",
-                    ["Jwt:Key"] = "TP4-fixture-signing-key-for-integration-tests-only",
+                    ["AdminUser:Password"] = AdminPassword,
+                    ["Jwt:Key"] = JwtSigningKey,
                     ["Jwt:Issuer"] = "tp4-integration",
                     ["Jwt:Audience"] = "tp4-integration",
                     ["Jwt:ExpireInMinutes"] = "10",
