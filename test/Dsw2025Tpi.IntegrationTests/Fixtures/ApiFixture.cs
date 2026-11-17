@@ -3,6 +3,7 @@ using Dsw2025Tpi.Api;
 using Dsw2025Tpi.Application.Services;
 using Dsw2025Tpi.Data.Contexts;
 using Dsw2025Tpi.Domain.Entities;
+using Dsw2025Tpi.Testing.Builders;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -50,6 +51,23 @@ public sealed class ApiFixture : IDisposable
 
     public AuthenticationHeaderValue CustomerAuthorization(Customer customer) =>
         CreateAuthorization(customer.UserName, "Customer");
+
+    public AuthenticationHeaderValue CustomerAuthorization() =>
+        CustomerAuthorization(new CustomerBuilder().Build());
+
+    public async Task<Product?> FindProductBySkuAsync(string sku)
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>();
+        return await context.Set<Product>().SingleOrDefaultAsync(product => product.Sku == sku);
+    }
+
+    public async Task<int> CountProductsAsync()
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>();
+        return await context.Set<Product>().CountAsync();
+    }
 
     private AuthenticationHeaderValue CreateAuthorization(string userName, string role)
     {
