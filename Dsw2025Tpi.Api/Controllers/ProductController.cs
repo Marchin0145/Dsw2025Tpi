@@ -19,7 +19,7 @@ namespace Dsw2025Tpi.Api.Controllers
 
         [ProducesResponseType(typeof(ProductModel.ResponseProduct), StatusCodes.Status201Created)]
         [HttpPost]
-       // [Authorize(Roles ="Employee")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> addProduct([FromBody]ProductModel.RequestProduct objeto)
         {
                 var producto = await _service.AddProduct(objeto);
