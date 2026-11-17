@@ -52,10 +52,11 @@ namespace Dsw2025Tpi.Application.Services
                 {
                     throw new ArgumentException("valores incompletos o erroneos en productos");
                 }
-                items.Add(new OrderItem(orden.Id, item.productId, producto, item.quantity, item.currentUnitPrice)
+                var orderItem = new OrderItem(orden.Id, item.productId, producto, item.quantity, item.currentUnitPrice)
                 {
                     Subtotal = item.quantity * item.currentUnitPrice
-                });
+                };
+                items.Add(orderItem);
                 itemsResponse.Add(new OrderItemModel.ResponseOrderItem(item.productId, item.quantity, producto.Description, item.currentUnitPrice, item.quantity * item.currentUnitPrice));
                 producto.StockQuantity -= item.quantity;
                 await _repository.Update(producto);

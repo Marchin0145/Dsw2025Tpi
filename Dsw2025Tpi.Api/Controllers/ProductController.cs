@@ -19,7 +19,7 @@ namespace Dsw2025Tpi.Api.Controllers
 
         [ProducesResponseType(typeof(ProductModel.ResponseProduct), StatusCodes.Status201Created)]
         [HttpPost]
-       // [Authorize(Roles ="Employee")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> addProduct([FromBody]ProductModel.RequestProduct objeto)
         {
                 var producto = await _service.AddProduct(objeto);
@@ -30,9 +30,25 @@ namespace Dsw2025Tpi.Api.Controllers
         [HttpGet]
         //[AllowAnonymous] para que entre cualquiera
         //[Authorize(Roles ="tester")]
-        public async Task <IActionResult> getProducts() { 
-        var productos= await _service.GetProducts();
-            return Ok(productos);
+        public async Task<IActionResult> getProducts(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? searchTerm = null)
+        {
+            var products = await _service.GetProducts(false, pageNumber, pageSize, searchTerm);
+            return Ok(products);
+        }
+
+        [HttpGet("admin")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> getAdminProducts(
+            [FromQuery] bool includeInactive = true,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? searchTerm = null)
+        {
+            var products = await _service.GetProducts(includeInactive, pageNumber, pageSize, searchTerm);
+            return Ok(products);
         }
 
         [HttpGet("{id}")]

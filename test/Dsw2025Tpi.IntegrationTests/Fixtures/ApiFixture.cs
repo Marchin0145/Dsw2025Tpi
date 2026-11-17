@@ -1,9 +1,11 @@
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using Dsw2025Tpi.Api;
 using Dsw2025Tpi.Application.Dtos;
 using Dsw2025Tpi.Application.Services;
 using Dsw2025Tpi.Data.Contexts;
 using Dsw2025Tpi.Domain.Entities;
+using Dsw2025Tpi.Testing.Builders;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -20,6 +22,8 @@ namespace Dsw2025Tpi.IntegrationTests.Fixtures;
 public sealed class ApiFixture : IDisposable
 {
     private const string AdminEmail = "admin@tp4.example";
+    private static readonly string AdminPassword = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    private static readonly string JwtSigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
     private readonly SqliteConnection _applicationDatabase = CreateDatabase();
     private readonly SqliteConnection _identityDatabase = CreateDatabase();
@@ -52,11 +56,28 @@ public sealed class ApiFixture : IDisposable
     public AuthenticationHeaderValue CustomerAuthorization(Customer customer) =>
         CreateAuthorization(customer.UserName, "Customer");
 
+    public AuthenticationHeaderValue CustomerAuthorization() =>
+        CustomerAuthorization(new CustomerBuilder().Build());
+
+    public async Task<Product?> FindProductBySkuAsync(string sku)
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>();
+        return await context.Set<Product>().SingleOrDefaultAsync(product => product.Sku == sku);
+    }
+
     public async Task<Product?> FindProductByIdAsync(Guid id)
     {
         await using var scope = _factory.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>();
         return await context.Set<Product>().SingleOrDefaultAsync(product => product.Id == id);
+    }
+
+    public async Task<int> CountProductsAsync()
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<Dsw2025TpiContext>();
+        return await context.Set<Product>().CountAsync();
     }
 
     public async Task<OrderModel.ResponseOrder?> FindOrderByCustomerIdAsync(Guid customerId)
@@ -144,8 +165,8 @@ public sealed class ApiFixture : IDisposable
                 {
                     [HostDefaults.EnvironmentKey] = "Testing",
                     ["AdminUser:Email"] = AdminEmail,
-                    ["AdminUser:Password"] = "TP4-fixture!Admin42",
-                    ["Jwt:Key"] = "TP4-fixture-signing-key-for-integration-tests-only",
+                    ["AdminUser:Password"] = AdminPassword,
+                    ["Jwt:Key"] = JwtSigningKey,
                     ["Jwt:Issuer"] = "tp4-integration",
                     ["Jwt:Audience"] = "tp4-integration",
                     ["Jwt:ExpireInMinutes"] = "10",
