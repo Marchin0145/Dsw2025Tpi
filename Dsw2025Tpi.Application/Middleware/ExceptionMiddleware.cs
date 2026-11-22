@@ -79,6 +79,22 @@ namespace Dsw2025Tpi.Application.Middleware
                     statusCode = HttpStatusCode.BadRequest;
                     message = exception.Message;
                     break;
+
+                case CustomerNotFoundException:
+                    statusCode = HttpStatusCode.NotFound;
+                    message = exception.Message;
+                    break;
+
+                case InsufficientStockException:
+                    statusCode = HttpStatusCode.BadRequest;
+                    message = exception.Message;
+                    break;
+
+                case InvalidProductDataException:
+                    statusCode = HttpStatusCode.BadRequest;
+                    message = exception.Message;
+                    break;
+
                 default:
                     break;
             }
