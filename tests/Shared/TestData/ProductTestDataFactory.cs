@@ -1,8 +1,8 @@
 using Dsw2025Tpi.Application.Dtos;
 using Dsw2025Tpi.Domain.Entities;
-using Dsw2025Tpi.Testing.Builders;
+using ECommerce.Testing.Builders;
 
-namespace Dsw2025Tpi.Testing.TestData;
+namespace ECommerce.Testing.TestData;
 
 internal static class ProductTestDataFactory
 {

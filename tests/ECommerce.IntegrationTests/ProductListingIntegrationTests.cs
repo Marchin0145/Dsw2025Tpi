@@ -1,19 +1,19 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Dsw2025Tpi.Testing.Builders;
+using ECommerce.Testing.Builders;
 using Xunit;
 
-namespace Dsw2025Tpi.IntegrationTests;
+namespace ECommerce.IntegrationTests;
 
 public class ProductListingIntegrationTests
 {
     [Fact]
     public async Task GetProducts_PublicEndpoint_ReturnsOkWithPaginatedJsonStructure()
     {
-        using var fixture = new Fixtures.ApiFixture();
+        using var factory = new CustomWebApplicationFactory();
 
-        var response = await fixture.Client.GetAsync("api/products");
+        var response = await factory.CreateClient().GetAsync("api/products");
 
         Assert.True(response.StatusCode is HttpStatusCode.OK or HttpStatusCode.NoContent);
         if (response.StatusCode == HttpStatusCode.NoContent)
@@ -31,7 +31,7 @@ public class ProductListingIntegrationTests
     [Fact]
     public async Task GetProducts_WithQueryStringFilters_ReturnsFilteredResultsFromSqlite()
     {
-        using var fixture = new Fixtures.ApiFixture();
+        using var factory = new CustomWebApplicationFactory();
         var matchingProduct = new ProductBuilder
         {
             Sku = "CAT-001",
@@ -53,9 +53,9 @@ public class ProductListingIntegrationTests
                 Name = "Monitor"
             }.Build()
         };
-        await fixture.SeedAsync(matchingProduct, otherProducts[0], otherProducts[1]);
+        await factory.SeedAsync(matchingProduct, otherProducts[0], otherProducts[1]);
 
-        var response = await fixture.Client.GetAsync(
+        var response = await factory.CreateClient().GetAsync(
             "api/products?search=mouse&pageNumber=1&pageSize=10");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -71,7 +71,7 @@ public class ProductListingIntegrationTests
     [Fact]
     public async Task GetAuthProducts_AdminEndpoint_WhenCalledByAdmin_IncludesInactiveProducts()
     {
-        using var fixture = new Fixtures.ApiFixture();
+        using var factory = new CustomWebApplicationFactory();
         var inactiveProduct = new ProductBuilder
         {
             Sku = "CAT-INACTIVE",
@@ -79,11 +79,11 @@ public class ProductListingIntegrationTests
             Name = "Producto inactivo",
             IsActive = false
         }.Build();
-        await fixture.SeedAsync(inactiveProduct);
+        await factory.SeedAsync(inactiveProduct);
         using var request = new HttpRequestMessage(HttpMethod.Get, "api/products/admin");
-        request.Headers.Authorization = fixture.AdminAuthorization();
+        request.Headers.Authorization = factory.AdminAuthorization();
 
-        var response = await fixture.Client.SendAsync(request);
+        var response = await factory.CreateClient().SendAsync(request);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<ProductListingResponse>();

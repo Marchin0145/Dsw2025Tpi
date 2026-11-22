@@ -1,9 +1,9 @@
 using Dsw2025Tpi.Application.Services;
-using Dsw2025Tpi.Testing.TestData;
-using Dsw2025Tpi.UnitTests.Mocks;
+using ECommerce.Testing.TestData;
+using ECommerce.UnitTests.Mocks;
 using Xunit;
 
-namespace Dsw2025Tpi.UnitTests;
+namespace ECommerce.UnitTests;
 
 public class ProductListingServicesTests
 {

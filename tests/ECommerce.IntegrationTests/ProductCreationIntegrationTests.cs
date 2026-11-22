@@ -1,20 +1,20 @@
 using System.Net;
 using System.Net.Http.Json;
-using Dsw2025Tpi.Testing.Builders;
-using Dsw2025Tpi.Testing.TestData;
+using ECommerce.Testing.Builders;
+using ECommerce.Testing.TestData;
 using Xunit;
 
-namespace Dsw2025Tpi.IntegrationTests;
+namespace ECommerce.IntegrationTests;
 
 public class ProductCreationIntegrationTests
 {
     [Fact]
     public async Task AddProduct_WhenUnauthenticatedOrNotAdmin_ReturnsUnauthorizedOrForbidden()
     {
-        using var fixture = new Fixtures.ApiFixture();
+        using var factory = new CustomWebApplicationFactory();
         var request = ProductTestDataFactory.ValidRequest();
 
-        var anonymousResponse = await fixture.Client.PostAsJsonAsync("api/products", request);
+        var anonymousResponse = await factory.CreateClient().PostAsJsonAsync("api/products", request);
 
         Assert.Equal(HttpStatusCode.Unauthorized, anonymousResponse.StatusCode);
 
@@ -22,9 +22,9 @@ public class ProductCreationIntegrationTests
         {
             Content = JsonContent.Create(request)
         };
-        customerRequest.Headers.Authorization = fixture.CustomerAuthorization();
+        customerRequest.Headers.Authorization = factory.CustomerAuthorization();
 
-        var customerResponse = await fixture.Client.SendAsync(customerRequest);
+        var customerResponse = await factory.CreateClient().SendAsync(customerRequest);
 
         Assert.Equal(HttpStatusCode.Forbidden, customerResponse.StatusCode);
     }
@@ -32,18 +32,18 @@ public class ProductCreationIntegrationTests
     [Fact]
     public async Task AddProduct_WhenAuthenticatedAsAdmin_PersistsInSqliteAndReturnsCreated()
     {
-        using var fixture = new Fixtures.ApiFixture();
+        using var factory = new CustomWebApplicationFactory();
         var request = ProductTestDataFactory.ValidRequest();
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "api/products")
         {
             Content = JsonContent.Create(request)
         };
-        httpRequest.Headers.Authorization = fixture.AdminAuthorization();
+        httpRequest.Headers.Authorization = factory.AdminAuthorization();
 
-        var response = await fixture.Client.SendAsync(httpRequest);
+        var response = await factory.CreateClient().SendAsync(httpRequest);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var persistedProduct = await fixture.FindProductBySkuAsync(request.sku);
+        var persistedProduct = await factory.FindProductBySkuAsync(request.sku);
         Assert.NotNull(persistedProduct);
         Assert.Equal(request.internalCode, persistedProduct.InternalCode);
         Assert.Equal(request.name, persistedProduct.Name);
@@ -55,9 +55,9 @@ public class ProductCreationIntegrationTests
     [Fact]
     public async Task AddProduct_WhenSkuAlreadyExistsInDatabase_ReturnsConflictStatusCode()
     {
-        using var fixture = new Fixtures.ApiFixture();
+        using var factory = new CustomWebApplicationFactory();
         var existingProduct = new ProductBuilder().Build();
-        await fixture.SeedAsync(existingProduct);
+        await factory.SeedAsync(existingProduct);
 
         var duplicateRequest = ProductTestDataFactory.ValidRequest() with
         {
@@ -67,13 +67,13 @@ public class ProductCreationIntegrationTests
         {
             Content = JsonContent.Create(duplicateRequest)
         };
-        httpRequest.Headers.Authorization = fixture.AdminAuthorization();
+        httpRequest.Headers.Authorization = factory.AdminAuthorization();
 
-        var response = await fixture.Client.SendAsync(httpRequest);
+        var response = await factory.CreateClient().SendAsync(httpRequest);
 
         Assert.True(
             response.StatusCode is HttpStatusCode.Conflict or HttpStatusCode.BadRequest,
             $"Se esperaba 409 o 400, pero la API devolvió {(int)response.StatusCode}.");
-        Assert.Equal(1, await fixture.CountProductsAsync());
+        Assert.Equal(1, await factory.CountProductsAsync());
     }
 }

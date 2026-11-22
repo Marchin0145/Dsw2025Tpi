@@ -1,6 +1,6 @@
 using Dsw2025Tpi.Domain.Entities;
 
-namespace Dsw2025Tpi.Testing.Builders;
+namespace ECommerce.Testing.Builders;
 
 internal sealed record CustomerBuilder
 {

@@ -3,7 +3,7 @@ using Dsw2025Tpi.Domain.Entities;
 using Dsw2025Tpi.Domain.Interfaces;
 using Moq;
 
-namespace Dsw2025Tpi.UnitTests.Mocks;
+namespace ECommerce.UnitTests.Mocks;
 
 internal static class OrderRepositoryMock
 {
