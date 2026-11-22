@@ -64,17 +64,8 @@ public class ProductServicesTests
         var repository = ProductRepositoryMock.Create();
         var service = new ProductServices(repository.Object);
 
-        Exception exception;
-        if (stockQuantity <= 0)
-        {
-            exception = await Assert.ThrowsAsync<ArgumentException>(
-                () => service.AddProduct(request));
-        }
-        else
-        {
-            exception = await Assert.ThrowsAsync<IncorrectPriceException>(
-                () => service.AddProduct(request));
-        }
+        var exception = await Assert.ThrowsAsync<InvalidProductDataException>(
+            () => service.AddProduct(request));
 
         Assert.Equal(expectedMessage, exception.Message);
         repository.Verify(repo => repo.First<Product>(

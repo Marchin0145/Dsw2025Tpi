@@ -90,6 +90,11 @@ namespace Dsw2025Tpi.Application.Middleware
                     message = exception.Message;
                     break;
 
+                case InvalidProductDataException:
+                    statusCode = HttpStatusCode.BadRequest;
+                    message = exception.Message;
+                    break;
+
                 default:
                     break;
             }
