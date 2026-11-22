@@ -40,10 +40,12 @@ public class OrderServicesTests
         var repository = OrderRepositoryMock.Create(customer, [product]);
         var service = new OrderServices(repository.Object);
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(
+        var exception = await Assert.ThrowsAsync<InsufficientStockException>(
             () => service.AddOrder(orderBuilder.BuildRequest(), customer.UserName));
 
-        Assert.Equal("valores incompletos o erroneos en productos", exception.Message);
+        Assert.Contains($"Stock insuficiente para el producto {product.Name}", exception.Message);
+        Assert.Contains($"Disponible: {initialStock}", exception.Message);
+        Assert.Contains($"Solicitado: 5", exception.Message);
         Assert.Equal(initialStock, product.StockQuantity);
         repository.Verify(repo => repo.Update(It.IsAny<Product>()), Times.Never);
         repository.Verify(repo => repo.Add(It.IsAny<Order>()), Times.Never);
@@ -57,7 +59,7 @@ public class OrderServicesTests
         var repository = OrderRepositoryMock.Create(null, products);
         var service = new OrderServices(repository.Object);
 
-        var exception = await Assert.ThrowsAsync<NotFoundEntityException>(
+        var exception = await Assert.ThrowsAsync<CustomerNotFoundException>(
             () => service.AddOrder(orderBuilder.BuildRequest(), userName));
 
         Assert.Equal("Usuario no encontrado", exception.Message);

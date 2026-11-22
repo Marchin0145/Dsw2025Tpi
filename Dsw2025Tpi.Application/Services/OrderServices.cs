@@ -38,7 +38,7 @@ namespace Dsw2025Tpi.Application.Services
 
             if (customer is null)
             {
-                throw new NotFoundEntityException($"Usuario no encontrado");
+                throw new CustomerNotFoundException($"Usuario no encontrado");
             }
 
             var items = new List<OrderItem>();
@@ -48,9 +48,13 @@ namespace Dsw2025Tpi.Application.Services
             foreach (var item in request.orderItems)
             {
                 var producto = await _repository.GetById<Product>(item.productId);
-                if (producto is null || item.quantity < 0 || producto.StockQuantity < item.quantity || !(producto.IsActive))
+                if (producto is null || item.quantity < 0 || !(producto.IsActive))
                 {
                     throw new ArgumentException("valores incompletos o erroneos en productos");
+                }
+                if (producto.StockQuantity < item.quantity)
+                {
+                    throw new InsufficientStockException($"Stock insuficiente para el producto {producto.Name}. Disponible: {producto.StockQuantity}, Solicitado: {item.quantity}");
                 }
                 var orderItem = new OrderItem(orden.Id, item.productId, producto, item.quantity, item.currentUnitPrice)
                 {

@@ -70,7 +70,8 @@ public class OrderCreationIntegrationTests
         var responseBody = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Contains("valores incompletos o erroneos en productos", responseBody);
+        Assert.Contains("Stock insuficiente", responseBody);
+        Assert.Contains(product.Name, responseBody);
 
         var unchangedProduct = await fixture.FindProductByIdAsync(product.Id);
         Assert.NotNull(unchangedProduct);
