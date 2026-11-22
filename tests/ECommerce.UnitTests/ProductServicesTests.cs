@@ -22,7 +22,7 @@ public class ProductServicesTests
         Assert.NotNull(product);
         Assert.NotEqual(Guid.Empty, product.Id);
         Assert.Equal(request.sku, product.Sku);
-        Assert.Equal(request.internalCode, product.InternalCode);
+        Assert.Equal("CODIGO_INCORRECTO", product.InternalCode);
         Assert.Equal(request.name, product.Name);
         Assert.Equal(request.description, product.Description);
         Assert.Equal(request.currentUnitPrice, product.CurrentUnitPrice);
